@@ -1,111 +1,77 @@
-from typing import Any, Dict, Optional, Tuple, Type, Union
-
-import json
+from abc import abstractmethod
 import os
-import polars as pl
-import pandas as pd
+from pyspark.sql import SparkSession, functions as sf
+from pyspark.sql.types import ArrayType, DoubleType
 
-from config.data import (
-    DATA_DIR,
-    S_DATA_NAME,
-    S_DATA_TYPES,
-    S_DATA_TABLE,
-    B_DATA_NAME,
-    B_DATA_TYPES,
-    B_DATA_TABLE,
-    G_DATA_NAME_CSV,
-    G_DATA_TYPES,
-    G_DATA_TABLE,
-    HEATMAP_NAME,
-)
+from config.data import (SPARK_NAME,
+                         DATA_DIR,
+                         RAW_DIR,
+                         BG_NAME,
+                         BG_TABLE,
+                         BG_SCHEMA,
+                         BR_NAME,
+                         BR_TABLE,
+                         BR_SCHEMA,
+                         SR_NAME,
+                         SR_TABLE,
+                         SR_SCHEMA,
+                         )
+from lib.graph import str_to_latlong
 
-class DataObject:
-    def __init__(self, data_dir=DATA_DIR) -> None:
-        self.ctx = pl.SQLContext()
-        self.load(data_dir=data_dir)
+geo_udf = sf.udf(lambda x: str_to_latlong(x), ArrayType(DoubleType()))
+
+
+class SparkData:
+    def __init__(
+        self, 
+        data_dir=DATA_DIR,
+    ):
+        self.data_dir = data_dir
+        self.spark = SparkSession.builder.appName(SPARK_NAME).getOrCreate()
+        self._load()
     
-    def load(self, data_dir=DATA_DIR) -> None:
-        self.s_data = pl.scan_csv(os.path.join(data_dir, S_DATA_NAME), dtypes=S_DATA_TYPES)\
-                        .with_column(pl.col("ArrivalTime").str.strptime(pl.Datetime, "%m/%d/%Y %I:%M:%S %p").cast(pl.Datetime))\
-                        .with_column(pl.col("DepartureTime").str.strptime(pl.Datetime, "%m/%d/%Y %I:%M:%S %p").cast(pl.Datetime))
-        self.ctx.register(S_DATA_TABLE, self.s_data)
-
-        self.b_data = pl.scan_csv(os.path.join(data_dir, B_DATA_NAME), dtypes=B_DATA_TYPES)\
-                        .with_column(pl.col("EndTime1").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))\
-                        .with_column(pl.col("EndTime2").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))\
-                        .with_column(pl.col("EndTime3").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))\
-                        .with_column(pl.col("EndTime4").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))\
-                        .with_column(pl.col("EndTime5").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))\
-                        .with_column(pl.col("EndTime6").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))\
-                        .with_column(pl.col("StartTime1").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))\
-                        .with_column(pl.col("StartTime2").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))\
-                        .with_column(pl.col("StartTime3").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))\
-                        .with_column(pl.col("StartTime4").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))\
-                        .with_column(pl.col("StartTime5").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))\
-                        .with_column(pl.col("StartTime6").str.strptime(pl.Time, "%H:%M:%S").cast(pl.Time))
-        self.ctx.register(B_DATA_TABLE, self.b_data)
+    @abstractmethod
+    def _load(self):
+        """Load data to spark"""
         
-        self.g_data = pl.scan_csv(os.path.join(data_dir, G_DATA_NAME_CSV), dtypes=G_DATA_TYPES)
-        self.ctx.register(G_DATA_TABLE, self.g_data)
-    
-    def query(
-        self,
-        query,
-        pandas=False
-    ) -> Union[Type[pl.LazyFrame], Type[pd.DataFrame]]:
-        if pandas:
-            return self.ctx.execute(query).collect().to_pandas()
+    def query(self, query, df=True):
+        if df:
+            return self.spark.sql(query).toPandas()
         else:
-            return self.ctx.execute(query)
-
-
-def geojson2csv(
-    data_dir: str, 
-    g_data_name: str, 
-    g_data_name_csv: str,
-) -> None:
-    with open(os.path.join(data_dir, g_data_name)) as f:
-        g_data = json.load(f)
+            return self.spark.sql(query)
     
-    _g_data = dict()
-    for bay in g_data['features']:
-        row = dict(
-            rd_seg_id = bay['properties']['rd_seg_id'],
-            rd_seg_dsc = bay['properties']['rd_seg_dsc'],
-            marker_id = bay['properties']['marker_id'],
-            bay_id = bay['properties']['bay_id'],
-            meter_id = bay['properties']['meter_id'],
-            last_edit = int(bay['properties']['last_edit']) if bay['properties']['last_edit'] else 0,
-            longitude = bay['geometry']['coordinates'][0][0][0][0],
-            latitude = bay['geometry']['coordinates'][0][0][0][1],
+
+class ParkingData(SparkData):
+    def __init__(
+        self,
+        data_dir=DATA_DIR,
+    ):
+        super().__init__(
+            data_dir=data_dir,
         )
-        _ = _g_data.get(row['bay_id'])
-        if _:
-            if _['last_edit'] > row['last_edit']:
-                continue
-        _g_data[row['bay_id']] = row
 
-    pl.from_dicts(list(_g_data.values())).write_csv(os.path.join(data_dir, g_data_name_csv))
+    def _load(self):
+        self.bg_data = self.spark.read.csv(
+            os.path.join(self.data_dir, RAW_DIR, BG_NAME),
+            schema=BG_SCHEMA,
+            header=True,
+            timestampFormat='yyyyMMddHHmmss',
+        ).withColumn('latlong', geo_udf(sf.col('the_geom')))
+        self.bg_data.createOrReplaceTempView(BG_TABLE)
 
+        self.br_data = self.spark.read.csv(
+            os.path.join(self.data_dir, RAW_DIR, BR_NAME), 
+            schema=BR_SCHEMA,
+            header=True,
+            timestampFormat='HH:mm:ss',
+        )
+        self.br_data.createOrReplaceTempView(BR_TABLE)
 
-def get_heatmap_csv(
-    data_obj: Type[DataObject],
-    data_dir: str, 
-    start_date: str = '2017-01-01',
-    end_date: str = '2017-12-31',
-):
-    _bay_df = data_obj.g_data.join(data_obj.b_data, left_on='bay_id', right_on='BayID')\
-                    .select(['bay_id', 'DeviceID', 'latitude', 'longitude'])
-    _inuse_df = data_obj.s_data.filter((pl.col('ArrivalTime').cast(pl.Date) >= start_date) & 
-                                    (pl.col('ArrivalTime').cast(pl.Date) <= end_date))\
-                            .groupby(pl.col('DeviceId').alias('d_id'))\
-                            .agg([pl.sum('Vehicle Present').alias('InUse')])
-    _heatmap_df = _bay_df.join(_inuse_df, left_on='DeviceID', right_on='d_id', how='inner')
-    _heatmap_df.collect().write_csv(os.path.join(data_dir, HEATMAP_NAME))
-
-
-def load_json(
-    path
-):
-    with open(path, 'r') as f:
-        return json.load(f)
+        self.sr_data = self.spark.read.csv(
+            os.path.join(self.data_dir, RAW_DIR, SR_NAME),
+            schema=SR_SCHEMA,
+            header=True,
+            timestampFormat='MM/dd/yyyy hh:mm:ss a',
+        )
+        self.sr_data.createOrReplaceTempView(SR_TABLE)
+    

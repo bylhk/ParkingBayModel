@@ -1,14 +1,14 @@
-FROM python:3.8.1
+FROM apache/spark-py:3.3.1
 
 WORKDIR /parking
-
-RUN apt-get update -y
-
 COPY requirements.txt requirements.txt
+
+USER root
 
 RUN apt-get update -y \ 
  && python3 -m pip install --no-cache-dir -U pip \
- && python3 -m pip install --no-cache-dir -r requirements.txt
+ && python3 -m pip install --no-cache-dir -r requirements.txt \
+ && rm -rf /var/lib/apt/lists/*
 
 COPY app/ ./
 

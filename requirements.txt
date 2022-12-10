@@ -1,8 +1,11 @@
-polars==0.14.31
+pyspark==3.2.1
 streamlit==1.15.1
+shapely==1.8.5
 jinja2==3.0.3
-nbconvert==6.4.4
 leafmap==0.13.2
-csrgraph==0.1.28
-gensim==3.8.0
-nodevectors==0.1.23
+
+
+# nbconvert==6.4.4
+# csrgraph==0.1.28
+# gensim==3.8.0
+# nodevectors==0.1.23
