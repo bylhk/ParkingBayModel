@@ -5,6 +5,7 @@ SPARK_NAME = 'Parking'
 DATA_DIR = 'data'
 RAW_DIR = 'raw'
 STREAMLIT_DIR = 'streamlit'
+CSR_DIR = 'csr'
 
 BG_NAME = 'bay_geo.csv'
 BG_TABLE = 'bg_table'
@@ -110,7 +111,9 @@ SR_SCHEMA = StructType([
 ])
 
 HEATMAP_NAME = 'heatmap.csv'
-
+CSR_NAME = 'csr.csv'
+CSRI_NAME = 'csr_index.csv'
+EMB_NAME = 'emb.parquet'
 
 # # DeviceId = Sensor id
 # # ArrivalTime = Datatime start

@@ -1,12 +1,21 @@
 import streamlit as st
 
-import os
 from datetime import datetime
 import leafmap.foliumap as leafmap
+import os
+import pandas as pd
 
 from lib.data import ParkingData
-from config.data import DATA_DIR, STREAMLIT_DIR, BG_TABLE, SR_TABLE, HEATMAP_NAME
+from lib.graph import bay_similarity_df
+from config.data import (DATA_DIR, 
+                         STREAMLIT_DIR, 
+                         BG_TABLE, 
+                         SR_TABLE, 
+                         HEATMAP_NAME, 
+                         CSR_DIR, 
+                         EMB_NAME)
 from sql.analysis import TOPN_QUERY, HEATMAP_QUERY
+from sql.graph import GRAPH_QUERY
 
 data_obj = ParkingData()
 
@@ -68,3 +77,15 @@ def heatmap_page():
         radius=20,
     )
     m.to_streamlit(height=700)
+
+
+def similarity_page():
+    st.title('Analysis')
+    st.write('Bay Similarity')
+
+    data = data_obj.query(GRAPH_QUERY.format(sr_table=SR_TABLE), df=True)
+    emb = pd.read_parquet(os.path.join(DATA_DIR, CSR_DIR, EMB_NAME))
+    
+    target_bay = st.selectbox('Target Bay', data['BayId'].unique())
+    similar_df = bay_similarity_df(target_bay, data, emb)
+    st.dataframe(similar_df)
