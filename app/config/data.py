@@ -110,6 +110,12 @@ SR_SCHEMA = StructType([
     StructField('VehiclePresent', IntegerType(), True)
 ])
 
+PH_NAME = 'public_holiday_2020.csv'
+PH_TABLE = 'ph_table'
+PH_SCHEMA = StructType([
+    StructField('holiday', DateType(), True)
+])
+
 HEATMAP_NAME = 'heatmap.csv'
 CSR_NAME = 'csr.csv'
 CSRI_NAME = 'csr_index.csv'

@@ -16,6 +16,9 @@ from config.data import (SPARK_NAME,
                          SR_NAME,
                          SR_TABLE,
                          SR_SCHEMA,
+                         PH_NAME,
+                         PH_TABLE,
+                         PH_SCHEMA,
                          CSR_DIR,
                          EMB_NAME,
                          EMB_TABLE,
@@ -83,6 +86,14 @@ class ParkingData(SparkData):
             timestampFormat='MM/dd/yyyy hh:mm:ss a',
         )
         self.sr_data.createOrReplaceTempView(SR_TABLE)
+
+        self.ph_data = self.spark.read.csv(
+            os.path.join(self.data_dir, RAW_DIR, PH_NAME),
+            schema=PH_SCHEMA,
+            header=True,
+            dateFormat='yyyy-MM-dd',
+        )
+        self.ph_data.createOrReplaceTempView(PH_TABLE)
 
         self.emb_data = self.spark.read.parquet(
             os.path.join(self.data_dir, CSR_DIR, EMB_NAME),
