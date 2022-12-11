@@ -1,7 +1,8 @@
 from abc import abstractmethod
 import os
+import numpy as np
 from pyspark.sql import SparkSession, functions as sf
-from pyspark.sql.types import ArrayType, DoubleType
+from pyspark.sql.types import ArrayType, DoubleType, FloatType
 
 from config.data import (SPARK_NAME,
                          DATA_DIR,
@@ -15,10 +16,15 @@ from config.data import (SPARK_NAME,
                          SR_NAME,
                          SR_TABLE,
                          SR_SCHEMA,
+                         CSR_DIR,
+                         EMB_NAME,
+                         EMB_TABLE,
                          )
 from lib.graph import str_to_latlong
 
-geo_udf = sf.udf(lambda x: str_to_latlong(x), ArrayType(DoubleType()))
+
+def cos_sim(a, b):
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
 
 class SparkData:
@@ -51,6 +57,9 @@ class ParkingData(SparkData):
         )
 
     def _load(self):
+        udf_cos_sim = self.spark.udf.register("cos_sim", cos_sim, FloatType())
+        geo_udf = self.spark.udf.register("str_to_latlong", lambda x: str_to_latlong(x), ArrayType(DoubleType()))
+        
         self.bg_data = self.spark.read.csv(
             os.path.join(self.data_dir, RAW_DIR, BG_NAME),
             schema=BG_SCHEMA,
@@ -74,4 +83,9 @@ class ParkingData(SparkData):
             timestampFormat='MM/dd/yyyy hh:mm:ss a',
         )
         self.sr_data.createOrReplaceTempView(SR_TABLE)
+
+        self.emb_data = self.spark.read.parquet(
+            os.path.join(self.data_dir, CSR_DIR, EMB_NAME),
+        )
+        self.emb_data.createOrReplaceTempView(EMB_TABLE)
     

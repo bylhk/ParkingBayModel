@@ -4,13 +4,18 @@ from nodevectors import Node2Vec
 import os
 import numpy as np
 import pandas as pd
-import shapely.wkt
+from shapely import wkt, geometry
 from sklearn.metrics.pairwise import cosine_similarity
 
 
 def str_to_latlong(x):
-    P = shapely.wkt.loads(x)
+    P = wkt.loads(x)
     return (P.centroid.y, P.centroid.x)
+
+
+def list_to_latlong(x):
+    P = geometry.Polygon(x)
+    return (P.centroid.x, P.centroid.y)
 
 
 def df_to_csr(data, relationship, csr=[], node_index={}, node_id=0, common_names={}):
@@ -73,18 +78,3 @@ def csr_to_emb(data_dir, csr_dir, csr_name, csri_name, emb_name, target_type):
     node_indices.to_parquet(os.path.join(data_dir, csr_dir, emb_name))
 
     return node_indices
-
-
-def bay_similarity_df(target_bay, data, emb):
-    similarity = cosine_similarity(np.stack(list(emb['emb'])))
-    bay_list = emb.loc[:, 'node_name'].astype(float).astype(int).values
-    target_id = (bay_list == target_bay).argmax()
-
-    similar_idxs = similarity[target_id].argsort()[::-1][:5]
-    similar_bays = dict(zip(bay_list[similar_idxs], similarity[target_id][similar_idxs]))
-
-    similar_df = data.loc[data['BayId'].isin(similar_bays.keys()), :]
-    similar_df.loc[:, 'similarity'] = similar_df['BayId'].apply(lambda x: similar_bays[x])
-    similar_df = similar_df.sort_values('similarity', ascending=False)
-
-    return similar_df

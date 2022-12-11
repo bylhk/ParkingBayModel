@@ -86,7 +86,7 @@ BR_SCHEMA = StructType([
     StructField('TypeDesc6', StringType(), True),
   ])
 
-SR_NAME = 'sensor_2022.csv'
+SR_NAME = 'sensor_2020.csv'
 SR_TABLE = 'sr_table'
 SR_SCHEMA = StructType([
     StructField('DeviceId', IntegerType(), True),
@@ -113,19 +113,6 @@ SR_SCHEMA = StructType([
 HEATMAP_NAME = 'heatmap.csv'
 CSR_NAME = 'csr.csv'
 CSRI_NAME = 'csr_index.csv'
-EMB_NAME = 'emb.parquet'
 
-# # DeviceId = Sensor id
-# # ArrivalTime = Datatime start
-# # DepartureTime = Datatime end
-# # DurationSeconds = Duration
-# # StreetMarker = Location of parking bay
-# # Sign = Parking sign - current restrictions
-# # Area = City area
-# # StreetId = Street id
-# # StreetName = Street name
-# # BetweenStreet1 = Intersecting street
-# # BetweenStreet2 = Intersecting street
-# # Side Of Street = 1 = Centre 2 = North 3 = East 4 = South 5 = West
-# # In Violation = True = violation, False = Not
-# # Vehicle Present = True = Vehicle present, False = Not
+EMB_NAME = 'emb.parquet'
+EMB_TABLE = 'emb_table'
