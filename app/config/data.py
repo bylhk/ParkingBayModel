@@ -6,6 +6,7 @@ DATA_DIR = 'data'
 RAW_DIR = 'raw'
 STREAMLIT_DIR = 'streamlit'
 CSR_DIR = 'csr'
+TRAIN_DIR = 'train'
 
 BG_NAME = 'bay_geo.csv'
 BG_TABLE = 'bg_table'

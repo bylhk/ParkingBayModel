@@ -7,6 +7,7 @@ from pyspark.sql.types import ArrayType, DoubleType, FloatType
 from config.data import (SPARK_NAME,
                          DATA_DIR,
                          RAW_DIR,
+                         TRAIN_DIR,
                          BG_NAME,
                          BG_TABLE,
                          BG_SCHEMA,
@@ -23,7 +24,12 @@ from config.data import (SPARK_NAME,
                          EMB_NAME,
                          EMB_TABLE,
                          )
+from config.train import DATA_PERIODS, TRAIN_NAME, TEST_NAME
 from lib.graph import str_to_latlong
+from sql.train import (BR_COL_SUBQUERY, 
+                       EFFECTIVE_SUBQUERY, 
+                       SR_BR_QUERY, 
+                       ML_QUERY)
 
 
 def cos_sim(a, b):
@@ -99,4 +105,39 @@ class ParkingData(SparkData):
             os.path.join(self.data_dir, CSR_DIR, EMB_NAME),
         )
         self.emb_data.createOrReplaceTempView(EMB_TABLE)
+
+    def write_ml(self):
+        for key, val in DATA_PERIODS.items():
+            _subqueries = []
+            for col in ['StartTime', 'EndTime', 'Duration', 'EffectiveOnPH', 'DisabilityExt', 'Exemption', 'TypeDesc']:  # 
+                _subqueries.append(
+                    BR_COL_SUBQUERY.format(
+                        effective_subquery=''.join([EFFECTIVE_SUBQUERY.format(n=n, target_col=col) for n in range(1, 7)]),
+                        target_col=col
+                    )
+                )
+
+            _query = SR_BR_QUERY.format(
+                start_date=val['start'],
+                end_date=val['end'],
+                subqueries=''.join(_subqueries),
+            )
+
+            sr_br_data = self.query(_query, df=False)
+            sr_br_data.createOrReplaceTempView(key)
+
+            self.query(ML_QUERY.format(sr_br_table=key), df=False)\
+                .write.mode('overwrite').parquet(os.path.join(DATA_DIR, TRAIN_DIR, f'{key}.parquet'))
+        
+        self.load_ml()
     
+    def load_ml(self):
+        self.train_data = self.spark.read.parquet(
+            os.path.join(self.data_dir, TRAIN_DIR, f'{TRAIN_NAME}.parquet'),
+        )
+        self.train_data.createOrReplaceTempView(TRAIN_NAME)
+
+        self.test_data = self.spark.read.parquet(
+            os.path.join(self.data_dir, TRAIN_DIR, f'{TEST_NAME}.parquet'),
+        )
+        self.test_data.createOrReplaceTempView(TEST_NAME)
