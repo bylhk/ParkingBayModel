@@ -2,4 +2,4 @@ __pycache__
 .ipynb_checkpoints
 app/data
 app/tmp
-
+!app/data/raw/Dataset_URL.txt
