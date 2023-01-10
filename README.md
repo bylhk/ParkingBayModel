@@ -1,11 +1,18 @@
 # Melbourne Parking Bay Model
-This repository demonstrated multiple packages for data.
+This repository demonstrated multiple packages for data
+- Docker for the container and quickstart
 - Streamlit for data visualization
 - Leafmap for data visualization
 - Spark for large-scale data processing
 - CSRGraph for graph data processing
 - NodeVectors for graph embedding
 - StableBaselines3 for reinforcement learning
+
+## Quickstart
+Run the shell script to run the streamlit app
+```
+sh streamlit_deploy.sh
+```
 
 ## Data Visualization
 ### Heatmap for Parking Usage 
