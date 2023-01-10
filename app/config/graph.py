@@ -1,3 +1,4 @@
+EMB_SIZE = 32
 TARGET_TYPE = 'BayId'
 
 RELATIONSHIP = dict(

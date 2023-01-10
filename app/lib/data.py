@@ -24,12 +24,15 @@ from config.data import (SPARK_NAME,
                          EMB_NAME,
                          EMB_TABLE,
                          )
+from config.graph import EMB_SIZE
 from config.train import DATA_PERIODS, TRAIN_NAME, TEST_NAME
 from lib.graph import str_to_latlong
 from sql.train import (BR_COL_SUBQUERY, 
                        EFFECTIVE_SUBQUERY, 
                        SR_BR_QUERY, 
-                       ML_QUERY)
+                       ML_QUERY,
+                       SAMPLE_QUERY,
+                       )
 
 
 def cos_sim(a, b):
@@ -64,6 +67,7 @@ class ParkingData(SparkData):
         super().__init__(
             data_dir=data_dir,
         )
+        self.emb_size = EMB_SIZE
 
     def _load(self):
         udf_cos_sim = self.spark.udf.register("cos_sim", cos_sim, FloatType())
@@ -126,6 +130,7 @@ class ParkingData(SparkData):
             sr_br_data = self.query(_query, df=False)
             sr_br_data.createOrReplaceTempView(key)
 
+            print(key, val)
             self.query(ML_QUERY.format(sr_br_table=key), df=False)\
                 .write.mode('overwrite').parquet(os.path.join(DATA_DIR, TRAIN_DIR, f'{key}.parquet'))
         
@@ -141,3 +146,6 @@ class ParkingData(SparkData):
             os.path.join(self.data_dir, TRAIN_DIR, f'{TEST_NAME}.parquet'),
         )
         self.test_data.createOrReplaceTempView(TEST_NAME)
+
+    def sample(self, key='train', sample_size=0.01):
+        return self.query(SAMPLE_QUERY.format(key=key), df=False).sample(sample_size).collect()

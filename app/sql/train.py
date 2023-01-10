@@ -50,7 +50,7 @@ SELECT
        BayId
      , ArrivalTime
      , DepartureTime
-     , DurationMinutes
+     --, DurationMinutes
      , InViolation
      , VehiclePresent
      , is_holiday
@@ -58,9 +58,14 @@ SELECT
      , no_br_record
      , StartTime
      , EndTime
-     , Duration
+     
      , EffectiveOnPH
+     
+     , Duration
+     --, CASE WHEN Duration IS NULL THEN 0 ELSE LOG(Duration+1) END AS LogDuration
      , DisabilityExt
+     --, CASE WHEN DisabilityExt IS NULL THEN 0 ELSE LOG(DisabilityExt+1) END AS LogDisabilityExt
+
      , CASE WHEN LOWER(TypeDesc) LIKE '%loading zone%' THEN 1 ELSE 0 END AS loading_zone
      , CASE WHEN LOWER(TypeDesc) LIKE '%disabled%' THEN 1 ELSE 0 END AS disabled
      , CASE WHEN LOWER(TypeDesc) LIKE '%meter%' THEN 1 ELSE 0 END AS meter
@@ -73,4 +78,76 @@ SELECT
      , CASE WHEN LOWER(Exemption) LIKE '%resident%' OR LOWER(Exemption) LIKE '%rpe%' THEN 1 ELSE 0 END AS exempt_resident
      , CASE WHEN LOWER(Exemption) LIKE '%disable%' THEN 1 ELSE 0 END AS exempt_disable
 FROM {sr_br_table}
+"""
+
+SAMPLE_QUERY = """
+WITH data1 AS (
+    SELECT 
+          BayId
+        , TO_TIMESTAMP(RAND() * (CAST(DepartureTime AS LONG) - CAST(ArrivalTime AS LONG)) + CAST(ArrivalTime AS LONG)) AS RandDatetime
+        , StartTime
+        , EndTime
+        , CASE WHEN InViolation IS NULL THEN 0 ELSE InViolation END AS InViolation
+        , CASE WHEN VehiclePresent IS NULL THEN 0 ELSE VehiclePresent END AS VehiclePresent
+        , is_holiday
+        , WeekDay
+        , no_br_record
+        , CASE WHEN EffectiveOnPH IS NULL THEN 0 ELSE EffectiveOnPH END AS EffectiveOnPH
+        , CASE WHEN Duration IS NULL THEN 0 ELSE LOG(Duration+1) END AS LogDuration
+        , CASE WHEN DisabilityExt IS NULL THEN 0 ELSE LOG(DisabilityExt+1) END AS LogDisabilityExt
+        , loading_zone
+        , disabled
+        , meter
+        , clearway
+        , no_stopping
+        , no_parking
+        , ticket
+        , letter_p
+        , exempt_other
+        , exempt_resident
+        , exempt_disable
+        , (CAST(DepartureTime AS LONG) - CAST(ArrivalTime AS LONG))/60 * RAND() AS RandSample1
+        , (CAST(DepartureTime AS LONG) - CAST(ArrivalTime AS LONG))/60 * RAND() AS RandSample2
+    FROM {key}
+), data2 AS (
+    SELECT *
+        , IFNULL((CAST(TO_TIMESTAMP(DATE_FORMAT(RandDatetime, "HH:mm:ss"), "HH:mm:ss") AS LONG) - CAST(StartTime AS LONG)) /3600, 0) AS hr_from_start
+        , IFNULL((CAST(EndTime AS LONG) - CAST(TO_TIMESTAMP(DATE_FORMAT(RandDatetime, "HH:mm:ss"), "HH:mm:ss") AS LONG)) /3600 , 0) AS hr_to_end
+        , CAST(DATE_FORMAT(RandDatetime, "HH")/24 AS FLOAT) AS hr
+    FROM data1
+    WHERE RandSample1 > 0.99
+      AND RandSample2 > 0.99
+)
+
+SELECT 
+      BayId
+    , InViolation
+    , VehiclePresent
+    , is_holiday
+    , WeekDay/6 AS WeekDay
+    , no_br_record
+    , EffectiveOnPH
+    , LogDuration/8 AS LogDuration
+    , LogDisabilityExt/8 AS LogDisabilityExt
+    , loading_zone
+    , disabled
+    , meter
+    , clearway
+    , no_stopping
+    , no_parking
+    , ticket
+    , letter_p
+    , exempt_other
+    , exempt_resident
+    , exempt_disable
+    , hr_from_start/24 AS hr_from_start
+    , hr_to_end/24 AS hr_to_end
+    , hr
+    , emb
+FROM data2 
+LEFT JOIN emb_table
+    ON data2.BayId = emb_table.node_name
+WHERE hr_from_start >= 0 
+  AND hr_to_end >= 0
+  -- AND VehiclePresent = 1
 """

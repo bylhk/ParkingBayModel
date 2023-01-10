@@ -7,15 +7,17 @@ import pandas as pd
 from shapely import wkt, geometry
 from sklearn.metrics.pairwise import cosine_similarity
 
+from config.graph import EMB_SIZE
+
 
 def str_to_latlong(x):
     P = wkt.loads(x)
-    return (P.centroid.y, P.centroid.x)
+    return (float(P.centroid.y), float(P.centroid.x))
 
 
 def list_to_latlong(x):
     P = geometry.Polygon(x)
-    return (P.centroid.x, P.centroid.y)
+    return (float(P.centroid.x), float(P.centroid.y))
 
 
 def df_to_csr(data, relationship, csr=[], node_index={}, node_id=0, common_names={}):
@@ -62,7 +64,7 @@ def save_csr(csr, node_index, data_dir, csr_dir, csr_name, csri_name):
 def graph_emb(data_dir, csr_dir, csr_name, model='Node2Vec'):
     G = cg.read_edgelist(os.path.join(data_dir, csr_dir, csr_name), directed=False, sep=',')
     if model == 'Node2Vec':
-        g2v = Node2Vec(n_components=32, walklen=10)
+        g2v = Node2Vec(n_components=EMB_SIZE, walklen=10)
     return g2v.fit_transform(G)
 
 
