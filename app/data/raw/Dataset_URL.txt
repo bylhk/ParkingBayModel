@@ -9,5 +9,3 @@ https://data.melbourne.vic.gov.au/Transport/On-street-Car-Park-Bay-Restrictions/
 
 On-street Car Parking Sensor Data - 2020 (Jan - May)
 https://data.melbourne.vic.gov.au/Transport/On-street-Car-Parking-Sensor-Data-2020-Jan-May-/4n3a-s6rn
-
-
