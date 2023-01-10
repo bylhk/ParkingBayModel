@@ -1,0 +1,13 @@
+On-street Parking Bay Sensors
+https://data.melbourne.vic.gov.au/Transport/On-street-Parking-Bay-Sensors/vh2v-4nfs
+
+On-street Parking Bays (GeoJson)
+https://data.melbourne.vic.gov.au/Transport/On-street-Parking-Bays/crvt-b4kt
+
+On-street Car Park Bay Restrictions
+https://data.melbourne.vic.gov.au/Transport/On-street-Car-Park-Bay-Restrictions/ntht-5rk7
+
+On-street Car Parking Sensor Data - 2020 (Jan - May)
+https://data.melbourne.vic.gov.au/Transport/On-street-Car-Parking-Sensor-Data-2020-Jan-May-/4n3a-s6rn
+
+
