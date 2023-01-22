@@ -1,5 +1,6 @@
 # Melbourne Parking Bay Model
-This repository demonstrated multiple packages for data
+This repository demonstrated multiple packages
+- MiniKuber for deployment
 - Docker for the container and quickstart
 - Streamlit for data visualization
 - Leafmap for data visualization
@@ -8,10 +9,15 @@ This repository demonstrated multiple packages for data
 - NodeVectors for graph embedding
 - StableBaselines3 for reinforcement learning
 
-## Quickstart
+## Quickstart - Local
 Run the shell script to run the streamlit app
 ```
 sh streamlit_deploy.sh
+```
+
+## Quickstart - MiniKube (K8s)
+```
+sh kube_deploy.sh
 ```
 
 ## Data Visualization
